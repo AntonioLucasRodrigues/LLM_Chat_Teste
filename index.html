@@ -117,7 +117,7 @@
     </div>
 
     <script>
-        async function enviarMensagem() {
+       async function enviarMensagem() {
             const input = document.getElementById("userInput");
             const mensagem = input.value;
             if (!mensagem) return;
@@ -127,9 +127,8 @@
             input.value = ""; 
             chatBox.scrollTop = chatBox.scrollHeight;
 
-            // Mostra o "Pensando..." para não parecer que travou
             const idCarregando = "msg-" + Date.now();
-            chatBox.innerHTML += `<div id="${idCarregando}" class="mensagem msg-ia" style="color: gray;">EcoLex está processando a legislação...</div>`;
+            chatBox.innerHTML += `<div id="${idCarregando}" class="mensagem msg-ia" style="color: gray;">EcoLex está lendo as normas...</div>`;
             chatBox.scrollTop = chatBox.scrollHeight;
 
             try {
@@ -139,14 +138,26 @@
                     body: JSON.stringify({ texto: mensagem })
                 });
                 
-                const dados = await resposta.json();
+                // Ferramentas para ler o "Stream" (efeito máquina de escrever)
+                const reader = resposta.body.getReader();
+                const decoder = new TextDecoder();
+                let textoCompleto = "";
                 
-                // Substitui o "Pensando..." pela resposta final
-                document.getElementById(idCarregando).innerHTML = `
-                    <strong>EcoLex:</strong><br>${dados.resposta}
-                    <div style="font-size: 11px; color: #888; margin-top: 12px; border-top: 1px solid #eee; padding-top: 8px;">Fontes: ${dados.fontes.join(', ')}</div>
-                `;
                 document.getElementById(idCarregando).style.color = "#333";
+
+                // Loop que desenha o texto em tempo real
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break; // Acabou de gerar o texto
+                    
+                    textoCompleto += decoder.decode(value, {stream: true});
+                    
+                    // Substitui quebras de linha \n por <br> pro HTML entender
+                    let textoHTML = textoCompleto.replace(/\n/g, '<br>');
+                    
+                    document.getElementById(idCarregando).innerHTML = `<strong>EcoLex:</strong><br>${textoHTML}`;
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
                 
             } catch (error) {
                 document.getElementById(idCarregando).innerHTML = "Erro ao conectar com o Python. O Uvicorn está rodando?";
