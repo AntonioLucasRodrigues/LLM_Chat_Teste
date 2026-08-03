@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>EcoLex - Assistente Ambiental</title>
+    <style>
+        /* CSS Básico para imitar o seu design */
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; height: 100vh; background-color: #f4f7f6; }
+        
+        /* Barra Lateral (Esquerda) */
+        #sidebar { width: 250px; background-color: #0d2818; color: white; padding: 20px; display: flex; flex-direction: column; }
+        #sidebar h2 { margin-top: 0; }
+        .menu-item { padding: 10px 0; border-bottom: 1px solid #1a4228; cursor: pointer; }
+        
+        /* Área Central (Chat) */
+        #main-chat { flex-grow: 1; padding: 20px; display: flex; flex-direction: column; }
+        #chat-box { flex-grow: 1; background: white; border-radius: 10px; padding: 20px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .mensagem { margin-bottom: 15px; padding: 15px; border-radius: 8px; }
+        .msg-usuario { background-color: #e8f5e9; text-align: right; }
+        .msg-ia { background-color: #f8f9fa; border-left: 4px solid #0d2818; }
+        
+        /* Input do Chat */
+        #input-area { display: flex; gap: 10px; }
+        #input-area input { flex-grow: 1; padding: 15px; border: 1px solid #ddd; border-radius: 25px; outline: none; }
+        #input-area button { padding: 10px 20px; background-color: #0d2818; color: white; border: none; border-radius: 25px; cursor: pointer; }
+        
+        /* Painel Direito (Ações) */
+        #right-panel { width: 300px; padding: 20px; background-color: #eef2f0; border-left: 1px solid #ddd; }
+        .card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body>
+
+    <!-- BARRA ESQUERDA -->
+    <div id="sidebar">
+        <h2>EcoLex 🍃</h2>
+        <p style="font-size: 12px; color: #aaa;">Polo Industrial de Manaus</p>
+        <div class="menu-item">Novo Chat</div>
+        <div class="menu-item">Legislação</div>
+        <div class="menu-item">Licenciamento</div>
+    </div>
+
+    <!-- ÁREA DO CHAT -->
+    <div id="main-chat">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2>Assistente Ambiental</h2>
+            <span style="background: #e8f5e9; color: green; padding: 5px 10px; border-radius: 20px; font-size: 14px;">📶 Offline</span>
+        </div>
+        
+        <div id="chat-box">
+            <div class="mensagem msg-ia">
+                <strong>EcoLex:</strong> Olá! Como posso ajudar sua empresa hoje com o licenciamento ambiental?
+            </div>
+        </div>
+        
+        <div id="input-area">
+            <input type="text" id="userInput" placeholder="Digite sua pergunta...">
+            <button onclick="enviarMensagem()">Enviar</button>
+        </div>
+    </div>
+
+    <!-- PAINEL DIREITO -->
+    <div id="right-panel">
+        <div class="card">
+            <h3>Fontes e Legislação</h3>
+            <p>📄 Res. CONAMA 237/1997</p>
+            <p>📄 Lei nº 12.651/2012</p>
+        </div>
+        <div class="card">
+            <h3>Resumo da Empresa</h3>
+            <p>✅ Licenças Ativas: 3</p>
+            <p>⚠️ Pendências: 2</p>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT: Conecta o HTML com o Python -->
+    <script>
+        async function enviarMensagem() {
+            const input = document.getElementById("userInput");
+            const mensagem = input.value;
+            if (!mensagem) return;
+
+            const chatBox = document.getElementById("chat-box");
+            
+            // Coloca a mensagem do usuário na tela
+            chatBox.innerHTML += `<div class="mensagem msg-usuario">${mensagem}</div>`;
+            input.value = ""; // Limpa a barra
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // Manda a mensagem pro FastAPI (Python)
+            try {
+                const resposta = await fetch("http://127.0.0.1:8000/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ texto: mensagem })
+                });
+                
+                const dados = await resposta.json();
+                
+                // Coloca a resposta do Ollama na tela
+                chatBox.innerHTML += `
+                    <div class="mensagem msg-ia">
+                        <strong>EcoLex:</strong><br>${dados.resposta}
+                        <div style="font-size: 12px; color: gray; margin-top: 10px;">Fontes: ${dados.fontes.join(', ')}</div>
+                    </div>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+                
+            } catch (error) {
+                chatBox.innerHTML += `<div class="mensagem msg-ia" style="color: red;">Erro ao conectar com o Python. O Uvicorn está rodando?</div>`;
+            }
+        }
+
+        // Permitir enviar com a tecla "Enter"
+        document.getElementById("userInput").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") enviarMensagem();
+        });
+    </script>
+</body>
+</html>
