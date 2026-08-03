@@ -1,7 +1,7 @@
 import streamlit as st
 import ollama
 
-# 1. Page Config using Material Icons
+# 1. Configuração da Página
 st.set_page_config(
     page_title="EcoLex - Compliance Ambiental",
     page_icon=":material/eco:",
@@ -9,39 +9,68 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Styling to build a sleek corporate green dashboard
-st.markdown("""
+# 2. Gerenciamento de Estado para o Tema (Claro/Escuro)
+if "theme" not in st.session_state:
+    st.session_state.theme = "light"
+
+def toggle_theme():
+    if st.session_state.theme == "light":
+        st.session_state.theme = "dark"
+    else:
+        st.session_state.theme = "light"
+
+# 3. Definição de Cores Dinâmicas via CSS
+if st.session_state.theme == "light":
+    bg_color = "#f4f7f6"
+    card_bg = "#ffffff"
+    text_color = "#333333"
+    border_color = "#e0e0e0"
+    btn_icon = ":material/dark_mode:"
+else:
+    bg_color = "#1e1e1e"
+    card_bg = "#2d2d2d"
+    text_color = "#ffffff"
+    border_color = "#444444"
+    btn_icon = ":material/light_mode:"
+
+# Injeção do CSS Personalizado
+st.markdown(f"""
     <style>
-    /* Dark Green Sidebar Styling */
-    div[data-testid="stSidebar"] { 
-        background-color: #0d2818; 
-        color: #ffffff; 
-    }
-    div[data-testid="stSidebar"] button {
-        text-align: left !important;
-        border-color: rgba(255, 255, 255, 0.1) !important;
-    }
-    /* Status Badge Styling */
-    .status-badge {
+    /* Fundo da tela principal */
+    .stApp {{ background-color: {bg_color}; color: {text_color}; }}
+    
+    /* Barra Lateral Verde Escura */
+    div[data-testid="stSidebar"] {{ background-color: #0d2818; color: white; }}
+    
+    /* Cards da coluna direita */
+    .custom-card {{
+        background-color: {card_bg};
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid {border_color};
+        margin-bottom: 20px;
+        color: {text_color};
+    }}
+    
+    /* Badges de Status no Topo */
+    .top-badge {{
         background-color: #e8f5e9;
         color: #1b5e20;
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 0.85rem;
-        font-weight: 600;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-weight: bold;
         display: inline-block;
-    }
+        border: 1px solid #c8e6c9;
+    }}
     </style>
 """, unsafe_allow_html=True)
 
-# 2. Left Sidebar Navigation
+# 4. Barra Lateral (Esquerda)
 with st.sidebar:
-    st.title("EcoLex")
+    st.markdown("## :material/eco: EcoLex")
     st.caption("Polo Industrial de Manaus")
-    
     st.markdown("---")
     
-    # Navigation Buttons with Native Material Icons
     st.button("Novo Chat", icon=":material/add:", use_container_width=True)
     st.button("Histórico", icon=":material/history:", use_container_width=True)
     st.button("Legislação", icon=":material/gavel:", use_container_width=True)
@@ -53,61 +82,53 @@ with st.sidebar:
     
     st.markdown("---")
     st.subheader("Sobre o Agente")
-    st.info(
-        "Agente de IA especialista em legislação ambiental e licenciamento "
-        "para empresas do Polo Industrial de Manaus."
-    )
-    st.caption("v1.0.0 (offline)")
+    st.info("Agente de IA especialista em legislação ambiental e licenciamento para empresas do Polo Industrial de Manaus.")
 
-# 3. Main Dashboard Layout
-col_chat, col_panel = st.columns([3, 1.2], gap="medium")
+# 5. Layout Principal (Cabeçalho Superior)
+header_left, header_right = st.columns([3, 1.5])
+with header_left:
+    st.markdown("### :material/eco: Assistente ambiental")
+    st.caption("Agente de IA para Compliance Ambiental")
+with header_right:
+    # Simulando a barra de ferramentas superior da sua imagem
+    col_badge, col_theme, col_user = st.columns([1.5, 1, 1.5])
+    with col_badge:
+        st.markdown('<div class="top-badge">:material/wifi_off: Offline</div>', unsafe_allow_html=True)
+    with col_theme:
+        st.button(btn_icon, on_click=toggle_theme, help="Alternar tema")
+    with col_user:
+        st.markdown("**Usuário** :material/expand_more:")
 
-# --- CENTRAL CHAT COLUMN ---
+st.markdown("---")
+
+# 6. Grid Principal (Chat e Painel)
+col_chat, col_panel = st.columns([3, 1.2], gap="large")
+
+# --- COLUNA DO CHAT ---
 with col_chat:
-    # Header with Material Symbol
-    st.markdown("### :material/nature_people: Assistente Ambiental")
-    st.markdown('<span class="status-badge">:material/wifi_off: Sistema Operando Offline</span>', unsafe_allow_html=True)
-    st.markdown("---")
-
-    # Initialize Message History
     if "messages" not in st.session_state:
         st.session_state.messages = [
             {
                 "role": "assistant",
-                "content": "Olá! Sou o seu **Assistente Ambiental**.\n\nComo posso ajudar sua empresa hoje? Faça perguntas sobre normas, licenciamento, obrigações ambientais, prazos e documentos necessários!",
-                "sources": []
+                "content": "Olá! Sou o seu **Assistente Ambiental**.\n\nComo posso ajudar sua empresa hoje? Faça perguntas sobre normas, licenciamento, obrigações ambientais, prazos e documentos necessários!"
             }
         ]
 
-    # Render Chat Messages
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
-            if msg.get("sources"):
-                st.caption(":material/menu_book: **Fontes Utilizadas:** " + " | ".join(msg["sources"]))
 
-    # User Input Field
-    if prompt := st.chat_input("Digite sua pergunta sobre compliance ambiental..."):
-        st.session_state.messages.append({"role": "user", "content": prompt, "sources": []})
+    if prompt := st.chat_input("Digite sua pergunta..."):
+        st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # Response Generation
         with st.chat_message("assistant"):
             placeholder = st.empty()
             full_response = ""
             
-            system_instruction = {
-                "role": "system",
-                "content": (
-                    "Você é o EcoLex, um agente especialista em legislação ambiental do Polo Industrial de Manaus (PIM). "
-                    "Responda com clareza e precisão técnica, citando artigos de lei estaduais (IPAAM) e federais (CONAMA, PNMA) quando relevante."
-                )
-            }
-            
-            formatted_messages = [system_instruction] + [
-                {"role": m["role"], "content": m["content"]} for m in st.session_state.messages
-            ]
+            system_instruction = {"role": "system", "content": "Você é o EcoLex, especialista ambiental."}
+            formatted_messages = [system_instruction] + [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
 
             for chunk in ollama.chat(model='llama3', messages=formatted_messages, stream=True):
                 full_response += chunk['message']['content']
@@ -115,48 +136,36 @@ with col_chat:
             
             placeholder.markdown(full_response)
             
-            sources = ["Resolução CONAMA 237/1997", "Resolução IPAAM 007/2015"]
-            st.caption(":material/menu_book: **Fontes Utilizadas:** " + " | ".join(sources))
+            st.caption(":material/menu_book: **Fontes Utilizadas:** Resolução CONAMA 237/1997 | Resolução IPAAM 007/2015")
+            st.session_state.messages.append({"role": "assistant", "content": full_response})
 
-            st.session_state.messages.append({
-                "role": "assistant", 
-                "content": full_response, 
-                "sources": sources
-            })
-
-# --- RIGHT SIDEBAR / QUICK ACCESS PANEL ---
+# --- COLUNA DIREITA (CARDS) ---
 with col_panel:
-    st.markdown("#### :material/balance: Fontes e Legislação")
-    
+    # Card 1: Fontes
+    st.markdown(f'<div class="custom-card">', unsafe_allow_html=True)
+    st.markdown("#### Fontes e Legislação")
     st.markdown("""
-    * :material/description: **Constituição Federal 1988**  
-      *Art. 225*
-    * :material/description: **Lei nº 6.938/1981**  
-      *Política Nacional do Meio Ambiente*
-    * :material/description: **Resolução CONAMA 237/1997**  
-      *Licenciamento ambiental*
-    * :material/description: **Lei nº 12.651/2012**  
-      *Código Florestal*
-    * :material/description: **Resolução IPAAM 007/2015**  
-      *Procedimentos de licenciamento*
+    * :material/description: **CF 1988** - Art. 225
+    * :material/description: **Lei nº 6.938/1981** - PNMA
+    * :material/description: **Res. CONAMA 237/1997**
+    * :material/description: **Res. IPAAM 007/2015**
     """)
-    
-    st.markdown("---")
-    st.markdown("#### :material/bolt: Ações Rápidas")
-    
-    st.button("Verificar obrigações", icon=":material/fact_check:", use_container_width=True)
-    st.button("Checklist de compliance", icon=":material/checklist:", use_container_width=True)
-    st.button("Consultar condicionantes", icon=":material/find_in_page:", use_container_width=True)
-    st.button("Simular prazos", icon=":material/event_repeat:", use_container_width=True)
-    st.button("Gerar relatório preliminar", icon=":material/picture_as_pdf:", use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown("---")
-    st.markdown("#### :material/apartment: Resumo da Empresa")
-    
-    col_m1, col_m2 = st.columns(2)
-    with col_m1:
-        st.metric(label="Licenças Ativas", value="3")
-    with col_m2:
-        st.metric(label="Pendências", value="2")
-        
-    st.error(":material/warning: **Próximo Vencimento:** 15/06/2026")
+    # Card 2: Ações
+    st.markdown(f'<div class="custom-card">', unsafe_allow_html=True)
+    st.markdown("#### Ações rápidas")
+    st.button("Verificar obrigações", icon=":material/check_box:", use_container_width=True)
+    st.button("Checklist de compliance", icon=":material/check_box:", use_container_width=True)
+    st.button("Consultar condicionantes", icon=":material/check_box:", use_container_width=True)
+    st.button("Simular prazos", icon=":material/check_box:", use_container_width=True)
+    st.button("Gerar relatório", icon=":material/check_box:", use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Card 3: Resumo
+    st.markdown(f'<div class="custom-card">', unsafe_allow_html=True)
+    st.markdown("#### Resumo da empresa")
+    st.metric(label="Licenças ativas", value="3")
+    st.metric(label="Condicionantes pendentes", value="2")
+    st.error(":material/schedule: **Próximos vencimentos:** 15/06/2026")
+    st.markdown('</div>', unsafe_allow_html=True)
